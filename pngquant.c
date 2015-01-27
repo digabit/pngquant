@@ -636,7 +636,7 @@ pngquant_error pngquant_file(const char *filename, const char *outname, struct p
         }
     }
 
-    if (options->move) {
+    if (options->move && SUCCESS == retval) {
  	verbose_printf(options, "  moving %s -> %s", outname, filename);
 	rename(outname, filename);
     }
