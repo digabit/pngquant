@@ -53,6 +53,8 @@ options:\n\
   --speed N         speed/quality trade-off. 1=slow, 3=default, 11=fast & rough\n\
   --nofs            disable Floyd-Steinberg dithering\n\
   --posterize N     output lower resolution color (e.g. for ARGB4444 output)\n\
+  --move            move the output file over the input file after complete\n\
+  --print           print the file name when completed\n\
   --verbose         print status messages (synonym: -v)\n\
 \n\
 Quantizes one or more 32-bit RGBA PNGs to 8-bit (or smaller) RGBA-palette\n\
@@ -98,7 +100,7 @@ struct pngquant_options {
     float floyd;
     bool using_stdin, using_stdout, force, fast_compression, ie_mode,
         min_quality_limit, skip_if_larger,
-        verbose;
+        verbose, move, print;
 };
 
 static pngquant_error prepare_output_image(liq_result *result, liq_image *input_image, png8_image *output_image);
@@ -227,6 +229,8 @@ static const struct {const char *old; const char *newopt;} obsolete_options[] = 
     {"-nofloyd", "--ordered"},
     {"-ordered", "--ordered"},
     {"-force", "--force"},
+    {"-m", "--move"},
+    {"-p", "--print"},
     {"-noforce", "--no-force"},
     {"-verbose", "--verbose"},
     {"-quiet", "--quiet"},
@@ -261,6 +265,8 @@ static const struct option long_options[] = {
     {"verbose", no_argument, NULL, 'v'},
     {"quiet", no_argument, NULL, 'q'},
     {"force", no_argument, NULL, 'f'},
+    {"move", no_argument, NULL, 'm'},
+    {"print", no_argument, NULL, 'p'},
     {"no-force", no_argument, NULL, arg_no_force},
     {"floyd", optional_argument, NULL, arg_floyd},
     {"ordered", no_argument, NULL, arg_ordered},
@@ -319,6 +325,10 @@ int main(int argc, char *argv[])
                 }
                 break;
             case arg_ordered: options.floyd = 0; break;
+
+            case 'm': options.move = true; break;
+
+            case 'p': options.print = true; break;
 
             case 'f': options.force = true; break;
             case arg_no_force: options.force = false; break;
@@ -626,9 +636,18 @@ pngquant_error pngquant_file(const char *filename, const char *outname, struct p
         }
     }
 
+    if (options->move) {
+ 	verbose_printf(options, "  moving %s -> %s", outname, filename);
+	rename(outname, filename);
+    }
+
     liq_image_destroy(input_image);
     rwpng_free_image24(&input_image_rwpng);
     rwpng_free_image8(&output_image);
+
+    if (options->print && SUCCESS == retval) {
+	printf("%s\n",filename);
+    }
 
     return retval;
 }
